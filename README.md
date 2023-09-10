@@ -1,7 +1,7 @@
 # pkg_bnnstgp
 
 #### from ex_bnnstgp import BNN_model
-import pandas as pd
+`import pandas as pd`
 import h5py
 import numpy as np
 import torch
