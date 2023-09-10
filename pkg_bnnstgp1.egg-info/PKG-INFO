@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: pkg-bnnstgp1
+Version: 0.1.5
+Summary: BNNSTGP
+Home-page: https://github.com/Ketherine0/BNNSTGP
+Author: Ella he
+Author-email: ellahe@umich.edu
+Classifier: Programming Language :: Python :: 3.7
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# pkg_bnnstgp
