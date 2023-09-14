@@ -14,23 +14,23 @@ from pkg_bnnstgp1.pkg_bnnstgp import BNN_model
 
 ### Example of loading neuroimaging data and coordinate data
 ```
-Y = pd.read_csv("/nfs/turbo/jiankanggroup/ellahe/y1.csv").iloc[:,1].values\
-idx = np.invert(np.isnan(Y))`\
+Y = pd.read_csv("/nfs/turbo/jiankanggroup/ellahe/y1.csv").iloc[:,1].values
+idx = np.invert(np.isnan(Y))
 Y = Y[idx]
 
-hf = h5py.File('/nfs/turbo/jiankanggroup/ellahe/image1.hdf5', 'r')\
-img1 = hf.get('img')['img1'][()][idx,:]\
+hf = h5py.File('/nfs/turbo/jiankanggroup/ellahe/image1.hdf5', 'r')
+img1 = hf.get('img')['img1'][()][idx,:]
 
-h2 = h5py.File('/nfs/turbo/jiankanggroup/ellahe/coord1.hdf5', 'r')\
+h2 = h5py.File('/nfs/turbo/jiankanggroup/ellahe/coord1.hdf5', 'r')
 coord1 = h2.get('coord')['coord1'][()]
 
-hf = h5py.File('/nfs/turbo/jiankanggroup/ellahe/image_fMRI2.hdf5', 'r')\
+hf = h5py.File('/nfs/turbo/jiankanggroup/ellahe/image_fMRI2.hdf5', 'r')
 img2 = hf.get('img')['img_fMRI'][()][idx,:]
 
-h2 = h5py.File('/nfs/turbo/jiankanggroup/ellahe/coord_fMRI2.hdf5', 'r')\
+h2 = h5py.File('/nfs/turbo/jiankanggroup/ellahe/coord_fMRI2.hdf5', 'r')
 coord2 = h2.get('coord')['coord_fMRI'][()]
 
-coord = [coord1, coord2]`\
+coord = [coord1, coord2]
 img_data = [img1, img2]
 ```
 
@@ -119,7 +119,8 @@ BNN_neuroimg.beta_fdr_control()
 ```
 
 # Demonstration of Region Selection
-![img|200x200](https://github.com/Ketherine0/BNNSTGP/blob/main/picture/nii_region.png)
+<img src="https://github.com/Ketherine0/BNNSTGP/blob/main/picture/nii_region.png" width="500">
 
-![alt text](https://github.com/Ketherine0/BNNSTGP/blob/main/picture/region_table.png)
+<img src="https://github.com/Ketherine0/BNNSTGP/blob/main/picture/region_table.png" width="600">
+
                         
