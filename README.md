@@ -1,4 +1,4 @@
-# Python package for *Bayesian Spatially Varying Weight Neural Networks with the Soft-Thresholded Gaussian Process Prior*
+# Bayesian Spatially Varying Weight Neural Networks with the Soft-Thresholded Gaussian Process Prior
 
 ### Install package
 `pip install -i https://test.pypi.org/simple/ pkg-bnnstgp1`
