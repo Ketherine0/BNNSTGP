@@ -114,9 +114,24 @@ BNN_neuroimg.beta_post()
 ```
 
 ### Beta FDR control(used for next step's region selection)
+Used for next step's region selection, we first calculate the beta values of 20 different reprtitions after FDR control
 ```
+train_ratio = 0.8
+rep = 20
+model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/"+model_dir
+
 BNN_neuroimg.beta_fdr_control()
 ```
+
+Then calculate the beta values of one whole training using all data
+```
+train_ratio = 1
+rep = 1
+model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/"+model_dir2
+
+BNN_neuroimg.beta_fdr_control()
+```
+After those two steps, the beta values of different repetitions and with whole data training will be saved under directory "Voxel"
 
 # Demonstration of Region Selection
 <img src="https://github.com/Ketherine0/BNNSTGP/blob/main/picture/nii_region.png" width="500">
