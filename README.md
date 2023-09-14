@@ -1,5 +1,7 @@
 # Bayesian Spatially Varying Weight Neural Networks with the Soft-Thresholded Gaussian Process Prior
 
+![alt text](https://github.com/Ketherine0/BNNSTGP/blob/main/picture/BNN_struc.png)
+
 ### Install package
 ```
 pip install -i https://test.pypi.org/simple/ pkg-bnnstgp1
@@ -116,4 +118,8 @@ BNN_neuroimg.beta_post()
 BNN_neuroimg.beta_fdr_control()
 ```
 
+# Demonstration of Region Selection
+![img|200x200](https://github.com/Ketherine0/BNNSTGP/blob/main/picture/nii_region.png)
+
+![alt text](https://github.com/Ketherine0/BNNSTGP/blob/main/picture/region_table.png)
                         
