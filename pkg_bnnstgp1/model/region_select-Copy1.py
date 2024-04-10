@@ -3,7 +3,7 @@ import numpy as np
 import nibabel as nib
 ## import R packages
 import os
-os.environ['R_HOME'] = '/home/ellahe/.conda/envs/bnnstgp/lib/R'
+os.environ['R_HOME'] = '/home/ellahe/.conda/envs/BNNSTGP/lib/R'
 
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
@@ -192,7 +192,7 @@ class Selection:
 
             for j in range(image_arr.shape[1]):
                 if voxel[:,j].sum() >= frequency:
-                    image_arr[seed, j] = 1
+                    image_arr[seed, j] = 1s
         # use regions selected by whole data training as the threshold
         hf = h5py.File(f"{voxels_dir}/Modality_total{idx}{0}.hdf5", 'r')
         m = hf.get('voxel')["mod"+str(idx)][:,:]
@@ -225,6 +225,7 @@ class Selection:
         plt.ylabel("Frequency")
         plt.show()
         stable_indices = np.where(stability >= self.thred)[1]
+        print(stable_indices)
 
         # Get the indexes of stable and non-stable regions
         stable_vocab = []
@@ -238,6 +239,7 @@ class Selection:
 
         stable_coord = []
         stable_values = []
+        print(len(stable_values),stable_values)
 
         # Initialize a zero array with the same shape as coordinates
         image_mat = np.zeros((AAL_mask.get_fdata().shape[0], AAL_mask.get_fdata().shape[1], AAL_mask.get_fdata().shape[2]))
@@ -246,6 +248,7 @@ class Selection:
         # save the nii image with regions selected
         for i in range(len(stable_vocab)):
             xyz = coordinates[stable_vocab[i], :]
+            print(xyz)
             if xyz[0] < image_mat.shape[0] and xyz[1] < image_mat.shape[1] and xyz[2] < image_mat.shape[2]:
                 stable_coord.append(list(xyz))
                 va = stability[0][stable_indices[i]]
@@ -263,6 +266,7 @@ class Selection:
 
         # Apply MNI_coords function to each region
         MNI_coordinates = [self.find_MNI_coords(region, AAL_info, AAL_mask, idx) for region in AAL_info['Short.Name']]
+        print("MNI",len(MNI_coordinates))
         if idx==1:
             MNI_coordinates = MNI_coordinates[0]
         elif idx==0:

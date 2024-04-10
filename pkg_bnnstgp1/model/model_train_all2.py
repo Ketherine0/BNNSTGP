@@ -8,7 +8,6 @@ from sys import platform
 import time
 from sklearn.linear_model import LinearRegression
 import random
-from sklearn.metrics import r2_score
 
 from model.data_split import TrainTestSplit
 from model.neuroimg_network import NeuroNet
@@ -87,8 +86,8 @@ class ModelTrain:
                            langevin=False)
 
             epoch = 0
-            start_save = 30
-            save_every = 5
+            start_save = 0
+            save_every = 1
             # N_saves = 70
             # test_every = 10
             print_every = 10
@@ -143,7 +142,6 @@ class ModelTrain:
                 net.scheduler.step()
                 loss_train[i] /= n_train
                 R2_train[i] = np.corrcoef(y_train_pred.reshape(-1), y_train.reshape(-1))[0,1]**2
-
                 toc = time.time()
                               
                 if i > start_save and i % save_every == 0:
@@ -189,8 +187,6 @@ class ModelTrain:
 
                             loss_val[i] /= n_test
                             R2_val[i] = np.corrcoef(y_test_pred.reshape(-1), y_test.reshape(-1))[0,1]**2
-                            print('R2 score', r2_score(y_test_pred, y_test))
-
                             best_R2 = max(best_R2, R2_val[i])
                             toc = time.time()
                         toc = time.time()

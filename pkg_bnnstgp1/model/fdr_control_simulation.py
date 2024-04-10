@@ -56,16 +56,17 @@ class BetaFdr:
         
         # Initialize the beta tensor with dims: weight samples x coordinate shape x hidden units num
         beta = np.zeros([len(weight_samples), coord.shape[0], self.n_hid])
-        
         # Iterate over weight samples
         for idx, weight in enumerate(weight_samples):
             network.model.load_state_dict(weight)  # Load weights into model
+            
             # Perform a series of transformations to obtain beta values
             output = torch.mm(network_phi, network_b)
             output = F.threshold(output, network.model.lamb, network.model.lamb) - F.threshold(-output, network.model.lamb, network.model.lamb)
             output = network.model.sigma * output
             output = output.cpu().detach().numpy()
             beta[idx,:,:] = output
+
         return self._process_beta(beta, weight_samples, coord)
 
     def _process_beta(self, beta, weight_samples, coord):
@@ -86,7 +87,6 @@ class BetaFdr:
         for j in range(beta.shape[2]):
             unit_beta = beta[:,:,j].copy()
             unit_beta[unit_beta != 0] = 1  # Convert beta values to binary
-            print("unit_beta",unit_beta.sum())
 
             # filtered_unit_beta = unit_beta[unit_beta < 0.8]
 #             print("Statistical Summary of unit_beta:")
@@ -105,7 +105,6 @@ class BetaFdr:
 
             # Rank beta values for each sample
             unit_beta = np.sum(unit_beta, axis=0) / len(weight_samples)
-        
             sorted_indices = np.argsort(-unit_beta)
 
             # Find index `l` such that the average of sorted beta over l is larger than threshold
@@ -151,7 +150,15 @@ class BetaFdr:
             train_idx = np.random.choice(len(self.Y), int(self.train_ratio * len(self.Y)), replace=False)
             
             # Train a linear regression model
-            reg = LinearRegression().fit(self.W[train_idx,:-1].detach().numpy(), self.Y[train_idx].detach().numpy())
+            reg = LinearRegression()
+            # Fit the model with your data
+            num_rows = self.W[train_idx, :].shape[0]
+            ones_array = np.ones((num_rows, 1))  # Creating a 2D array with two columns of ones
+
+            # Fitting the linear regression model
+            reg.fit(ones_array, self.Y[train_idx].detach().numpy())
+            # reg = LinearRegression().fit(self.W[train_idx,:-1], self.Y[train_idx].detach().numpy())
+            # reg_init = np.append(reg.coef_, reg.intercept_).astype(np.float32)
             
             # Initialize a NeuroNet model
             n_knots = [self.phi[i].shape[1] for i in range(self.n_img)]
@@ -161,6 +168,28 @@ class BetaFdr:
             weight_samples = self._load_saved_samples(repetition)
             dir_path = fdr_path
             os.makedirs(dir_path, exist_ok=True)
+
+            # Calculate beta after fdr control
+#             beta_all[repetition,:,:] = self.calculate_beta_fdr(net, weight_samples, net.model.phi[idx], net.model.b[idx], self.coord[idx])
+#             beta_all = np.where(np.abs(beta_all)>0, 1, 0)
+#             print("beta_all sum: ", beta_all[repetition,:,:].sum())
+            
+#             # save voxel selection to a hdf5 file
+#             b_mean = np.mean(beta_all[repetition,:,:], axis=0)
+            
+#             # dir_path = "Voxel"
+#             # dir_path = "/scratch/jiankang_root/jiankang1/ellahe/Voxel1"
+      
+#             selection = np.zeros((self.rep,b_mean.shape[0]))
+#             for i,b in enumerate(b_mean):
+#                 if b >= 1:
+#                     selection[repetition, i] = 1
+#             if self.train_ratio==1:
+#                 with h5py.File(f"{dir_path}/Modality_total{idx}{repetition}.hdf5", 'w') as hf:  
+#                     hf.create_group("voxel").create_dataset(f"mod{idx}", data=selection)
+#             else:
+#                 with h5py.File(f"{dir_path}/Modality{idx}{repetition}.hdf5", 'w') as hf:  
+#                     hf.create_group("voxel").create_dataset(f"mod{idx}", data=selection)
 
             # num of neurns x coord
             beta_all_repetition = self.calculate_beta_fdr(net, weight_samples, net.model.phi[idx], net.model.b[idx], self.coord[idx])
@@ -206,7 +235,7 @@ class BetaFdr:
             reg_init=np.append(reg.coef_, reg.intercept_).astype(np.float32), 
             lr = self.lr, lamb = self.lamb, input_dim = self.imgs[idx].shape[1], 
             N_train=len(train_idx), n_hid=self.n_hid, n_hid2=self.n_hid2, n_hid3=self.n_hid3, n_hid4=self.n_hid4,
-            phi = self.phi, num_layer=self.nb_layer, w_dim = self.W.shape[1],
+            phi = self.phi, num_layer=self.nb_layer, w_dim = 2,
             n_knots=n_knots, n_img=self.n_img, step_decay_epoch = 200, step_gamma = 0.2,
         )
         

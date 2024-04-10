@@ -1,11 +1,16 @@
 import pandas as pd
-import numpy as np
 import os
 import torch
-os.environ['R_HOME'] = '/home/ellahe/.conda/envs/BNNSTGP/lib/R'
+os.environ['R_HOME'] = '/home/ellahe/.conda/envs/bnnstgp/lib/R'
 
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
+import numpy as np
+from rpy2.robjects import pandas2ri
+readRDS = robjects.r['readRDS']
+
+torch.set_default_dtype(torch.float32)
+pandas2ri.activate()
 
 utils = importr('utils')
 GP = importr('BayesGPfit')
