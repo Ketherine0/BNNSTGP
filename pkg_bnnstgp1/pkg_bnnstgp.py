@@ -84,7 +84,7 @@ sys.path.insert(0, this_dir)
 
 from model.neuroimg_network import NeuroNet
 from model.data_split import TrainTestSplit
-from model.model_train_all import ModelTrain
+from model.model_train3 import ModelTrain
 from model.pre_data import LoadData
 from model.post_pred import PostPred
 from model.fdr_control import BetaFdr
@@ -293,7 +293,7 @@ class BNN_model(nn.Module):
         for i in range(self.n_img):
             self.beta_all.append(BetaFdr(self.rep, self.path, self.lr, self.lamb, self.Y,
                                     n_hid=self.n_hid, n_hid2=self.n_hid2, 
-                                    n_hid3=self.n_hid3, n_hid4=self.n_hid4, fdr_thred=self.thred,
+                                    n_hid3=self.n_hid3, n_hid4=self.n_hid4, fdr_thred=self.fdr_thred,
                                     coord=self.coord, imgs=self.imgs, 
                                     W=self.W, hid_u=self.hid_u,
                                     phi=self.phi, nb_layer=self.nb_layer, 
