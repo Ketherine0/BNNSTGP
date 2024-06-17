@@ -82,7 +82,6 @@ this_dir = os.path.dirname(__file__)
 sys.path.insert(0, this_dir)
 
 
-from model.neuroimg_network import NeuroNet
 from model.data_split import TrainTestSplit
 from model.model_train3 import ModelTrain
 from model.pre_data import LoadData
