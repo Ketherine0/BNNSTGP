@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-# import torch
+import torch
 # os.environ['R_HOME'] = '/home/ellahe/.conda/envs/bnnstgp/lib/R'
 
 import rpy2.robjects as robjects
