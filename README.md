@@ -125,8 +125,8 @@ For later region selection part, we have to do one training with all data includ
 ```
 train_ratio = 1
 rep = 1
-model_dir2 = "multi_test_resize_all2"
-model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/multi_test_resize_all2/"+model_dir2
+model_dir2 = "multi_test_resize_all2_total"
+model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/"+model_dir2
 os.makedir(model_dir2)
 
 BNN_neuroimg = BNN_model(coord=coord, imgs=img_data, cov=np.zeros((img_data[0].shape[0],1)),
@@ -149,7 +149,7 @@ Used for next step's region selection, we first calculate the beta values of 20 
 ```
 train_ratio = 0.8
 rep = 20
-model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/"+model_dir
+model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/multi_test_resize_all2/"+model_dir
 
 BNN_neuroimg.beta_fdr_control()
 ```
