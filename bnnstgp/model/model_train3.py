@@ -12,7 +12,6 @@ import rpy2.robjects.numpy2ri
 import time
 from sklearn.linear_model import LinearRegression
 import random
-from sklearn.metrics import r2_score
 
 from BNNSTGP4.data_split import TrainTestSplit
 from BNNSTGP4.neuroimg_network import NeuroNet
@@ -176,7 +175,7 @@ class ModelTrain:
                 
                 net.scheduler.step()
                 loss_train[i] /= n_train
-                R2_train[i] = r2_score(y_train_pred.reshape(-1), y_train.reshape(-1))
+                R2_train[i] = np.corrcoef(y_train_pred.reshape(-1), y_train.reshape(-1))[0,1]**2
                 
                 toc = time.time()
                 # print(net.weight_set_samples)
@@ -231,7 +230,7 @@ class ModelTrain:
 
 
                         loss_val[i] /= n_test
-                        R2_val[i] = r2_score(y_test_pred.reshape(-1), y_test.reshape(-1))
+                        R2_val[i] = np.corrcoef(y_test_pred.reshape(-1), y_test.reshape(-1))[0,1]**2
                         
                         best_R2 = max(best_R2, R2_val[i])
                         toc = time.time()
