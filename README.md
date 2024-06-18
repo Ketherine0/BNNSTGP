@@ -30,7 +30,7 @@ GP = importr('BayesGPfit')
 
 ### Example of loading neuroimaging data and coordinate data
 ```
-Y = pd.read_csv("bnnstgp/data/y1.csv").iloc[:,1].values
+Y = pd.read_csv("data/y1.csv").iloc[:,1].values
 idx = np.invert(np.isnan(Y))
 Y = Y[idx]
 
@@ -67,33 +67,46 @@ num_epochs: number of epochs to train per repetition\
 thred: threshold of beta FDR control
 
 ```
-rep_num = 20
+rep_num = 10
 a = 0.01
 b = 100 
 poly_degree = 18
-num_weight_samples = 70
+num_weight_samples = 50
 lamb = 10
 n_hid = 128
 n_hid2 = 16
 lr = 3e-3
-model_dir = "multi_test_resize_all"
-model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/"+model_dir
-os.makedir(model_dir)
+model_dir = "multi_test_resize_all2"
+
+model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/multi_test_resize_all2/"+model_dir
+os.makedirs(model_save_path, exist_ok=True)
 num_layer = 2
-num_epochs = 151
-thred = 0.5
-background_image = "../data/neuroimaging/AAL_MNI_2mm.nii"
+num_epochs = 131
+thred = 0.4
+back_image2 = "data/neuroimaging/AAL_MNI_2mm.nii"
+back_image1 = "data/neuroimaging/AAL_90_3mm.nii"
+regioninfo_file1 = "data/neuroimaging/AALregion_full.xls"
+regioninfo_file2 = "data/neuroimaging/AAL_region_functional_networks.csv"
+mni_file1 = "MNI_coords.csv"
+mni_file2 = "MNI_coords_2mm.csv"
+fdr_thred = 0.3
 batch_size = 128
-nii_save_path = 'model_sig_nii/select_region_unit'
+nii_save_path = model_save_path+'/select_region'
 ```
 
 ### Constructing model
 ```
 BNN_neuroimg = BNN_model(coord=coord, imgs=img_data, cov=np.zeros((img_data[0].shape[0],1)),
-                         Y=Y,rep=20,a=0.01,b=100, poly_degree=18, N_saves=70,
-                         lamb=10,n_hid=128, n_hid2=16, lr=3e-3,path="/nfs/turbo/jiankanggroup/ellahe/multi_test_resize",nb_layer=2, n_epochs=151,
-                        thred = 0.5, bg_image = "../data/neuroimaging/AAL_MNI_2mm.nii", batch_size=128,
-                        nii_path = 'model_sig_nii/select_region_unit', n_img=len(img_data),
+                         Y=Y,rep=rep_num,a=a,b=b, poly_degree=poly_degree, 
+                         N_saves=num_weight_samples,
+                         lamb=lamb,n_hid=n_hid, n_hid2=n_hid2, 
+                         lr=lr,path=model_save_path,nb_layer=num_layer, n_epochs=num_epochs,
+                        thred = thred, bg_image1 = back_image1, bg_image2 = back_image2, 
+                         region_info1 = regioninfo_file1, 
+                         region_info2 = regioninfo_file2, mni_file1 = mni_file1,
+                         mni_file2 = mni_file2, batch_size=batch_size,
+                        nii_path = nii_save_path, fdr_thred = fdr_thred, 
+                         n_img=len(img_data),
                         device='cuda' if torch.cuda.is_available() else 'cpu')
 ```
 
@@ -112,8 +125,8 @@ For later region selection part, we have to do one training with all data includ
 ```
 train_ratio = 1
 rep = 1
-model_dir2 = "multi_test_resize_all"
-model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/"+model_dir2
+model_dir2 = "multi_test_resize_all2"
+model_save_path = "/scratch/jiankang_root/jiankang1/ellahe/multi_test_resize_all2/"+model_dir2
 os.makedir(model_dir2)
 
 BNN_neuroimg = BNN_model(coord=coord, imgs=img_data, cov=np.zeros((img_data[0].shape[0],1)),
