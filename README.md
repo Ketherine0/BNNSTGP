@@ -2,32 +2,50 @@
 
 ![alt text](https://github.com/Ketherine0/BNNSTGP/blob/main/picture/BNN_struc.png)
 
-### Install package
+### Clone python package
 ```
-pip install -i https://test.pypi.org/simple/ pkg-bnnstgp1
+git clone https://github.com/Ketherine0/BNNSTGP.git
+```
+
+```
+import pandas as pd
+import h5py
+import numpy as np
+import torch
+import os
+import sys
 ```
 
 ### import package
 ```
-from pkg_bnnstgp1.pkg_bnnstgp import BNN_model
+# Change to your R home
+os.environ['R_HOME'] = '/home/ellahe/.conda/envs/BNNSTGP/lib/R'
+from pkg_bnnstgp import BNN_model
+```
+```
+from rpy2.robjects.packages import importr
+utils = importr('utils')
+GP = importr('BayesGPfit')
 ```
 
 ### Example of loading neuroimaging data and coordinate data
 ```
-Y = pd.read_csv("/nfs/turbo/jiankanggroup/ellahe/y1.csv").iloc[:,1].values
+Y = pd.read_csv("BNNSTGP/data/y1.csv").iloc[:,1].values
 idx = np.invert(np.isnan(Y))
 Y = Y[idx]
 
-hf = h5py.File('/nfs/turbo/jiankanggroup/ellahe/image1.hdf5', 'r')
+hf = h5py.File('/scratch/jiankang_root/jiankang1/ellahe/image1.hdf5', 'r')
 img1 = hf.get('img')['img1'][()][idx,:]
+# img2 = hf.get('img')['img2'][()][idx,:]
 
-h2 = h5py.File('/nfs/turbo/jiankanggroup/ellahe/coord1.hdf5', 'r')
+h2 = h5py.File('/scratch/jiankang_root/jiankang1/ellahe/coord1.hdf5', 'r')
 coord1 = h2.get('coord')['coord1'][()]
+# coord2 = h2.get('coord')['coord2'][()]
 
-hf = h5py.File('/nfs/turbo/jiankanggroup/ellahe/image_fMRI2.hdf5', 'r')
+hf = h5py.File('/scratch/jiankang_root/jiankang1/ellahe/image_fMRI2.hdf5', 'r')
 img2 = hf.get('img')['img_fMRI'][()][idx,:]
 
-h2 = h5py.File('/nfs/turbo/jiankanggroup/ellahe/coord_fMRI2.hdf5', 'r')
+h2 = h5py.File('/scratch/jiankang_root/jiankang1/ellahe/coord_fMRI2.hdf5', 'r')
 coord2 = h2.get('coord')['coord_fMRI'][()]
 
 coord = [coord1, coord2]
