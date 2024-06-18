@@ -30,7 +30,7 @@ GP = importr('BayesGPfit')
 
 ### Example of loading neuroimaging data and coordinate data
 ```
-Y = pd.read_csv("BNNSTGP/data/y1.csv").iloc[:,1].values
+Y = pd.read_csv("bnnstgp/data/y1.csv").iloc[:,1].values
 idx = np.invert(np.isnan(Y))
 Y = Y[idx]
 
