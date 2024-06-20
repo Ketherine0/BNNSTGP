@@ -18,8 +18,14 @@ import sys
 
 ### import package
 ```
+current_dir = os.getcwd()
+sub_dir = os.path.join(current_dir, 'bnnstgp') 
+sys.path.append(sub_dir)
+sub_dir = os.path.join(current_dir, '../') 
+sys.path.append(sub_dir)
+
 # Change to your R home
-os.environ['R_HOME'] = '/home/ellahe/.conda/envs/BNNSTGP/lib/R'
+os.environ['R_HOME'] = '/home/ellahe/.conda/envs/bnnstgp/lib/R'
 from pkg_bnnstgp import BNN_model
 ```
 ```
