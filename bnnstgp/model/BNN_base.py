@@ -48,8 +48,8 @@ class BNN(nn.Module):
             self.zeta = nn.Parameter(torch.Tensor(n_hid, output_dim).normal_(0, .2))
             self.eta = nn.Parameter(torch.Tensor(n_hid).zero_())
             self.alpha = nn.Parameter(torch.tensor(reg_init).reshape(w_dim, output_dim))
-            self.shape = 1
-            self.scale = 10
+            self.shape =100
+            self.scale = 0.01
             self.noise = nn.Parameter(torch.tensor(np.float32(invgamma.rvs(size=output_dim,a=self.shape,scale=self.scale))))  
 
             self.b_prior_sig = b_prior_sig
