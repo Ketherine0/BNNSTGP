@@ -13,26 +13,22 @@ import time
 from sklearn.linear_model import LinearRegression
 import random
 
-from BNNSTGP4.data_split import TrainTestSplit
-from BNNSTGP4.neuroimg_network import NeuroNet
-
+from model.data_split import TrainTestSplit
+from model.neuroimg_network import NeuroNet
 
 class ModelTrain:
     """
-    input the number of reptitions, the model saving path and file name, and the number of network layers
+    input the number of repetitions, the model saving path and file name, and the number of network layers
     example path: "model/neuroimg_prob"
     return the trained model and network weight
     """
     
-    def __init__(self, imgs, Y, W, phi, rep, n_hid, n_hid2, n_hid3, n_hid4, path, nb_layer, device, lr=3e-4,    
-                 n_epochs=120, 
-                 lamb=10, batch_size=128,
-                 N_saves=50, test_every=10, n_img=1):
+    def __init__(self, imgs, Y, W, phi, n_hid, n_hid2, n_hid3, n_hid4, path, nb_layer, device, lr=3e-4,    
+                 n_epochs=120, lamb=10, batch_size=128, N_saves=50, test_every=10, n_img=1):
         self.imgs = imgs
         self.Y = Y
         self.W = W
         self.phi = phi
-        self.rep = rep
         self.n_hid = n_hid
         self.n_hid2 = n_hid2
         self.n_hid3 = n_hid3
@@ -48,208 +44,146 @@ class ModelTrain:
         self.n_img = n_img
         self.device= device
         
-    def train(self):
+    def train(self, seed):
         torch.cuda.empty_cache()
     
         l = []
-        R2_total = np.zeros(self.rep)
+        R2_total = np.zeros(1)
 
-        for seed in range(self.rep):
+        tic = time.time()
+        start_epoch = 0
+
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        input_dim = self.imgs[0].shape[1]
+        train_ratio = 0.8
+        train_idx = np.random.choice(np.arange(len(self.Y)), int(train_ratio * len(self.Y)), replace=False)
+        test_idx = np.ones(len(self.Y), dtype=np.bool)
+        test_idx[train_idx] = False
+
+        n_train = len(train_idx)
+        n_test = len(test_idx)
+        nbatch_train = (n_train + self.batch_size - 1) // self.batch_size
+        nbatch_test = (n_test + self.batch_size - 1) // self.batch_size if n_test > 0 else 0
+        reg = LinearRegression().fit(self.W[train_idx, :self.W.shape[1]-1].detach().cpu().numpy(), self.Y[train_idx].detach().cpu().numpy())
+        reg_init = np.append(reg.coef_, reg.intercept_).astype(np.float32)
+        n_knots = [self.phi[i].shape[1] for i in range(self.n_img)]
+        net = NeuroNet(reg_init=reg_init, lr=self.lr, lamb=self.lamb, input_dim=input_dim, N_train=n_train, n_hid=self.n_hid, n_hid2=self.n_hid2,
+                       n_hid3=self.n_hid3, n_hid4=self.n_hid4, phi=self.phi, num_layer=self.nb_layer, w_dim=self.W.shape[1],
+                       n_knots=n_knots, n_img=self.n_img, step_decay_epoch=200, step_gamma=0.2, b_prior_sig=None, langevin=False)
+
+        epoch = 0
+        start_save = 30
+        save_every = 1
+        print_every = 10
+
+        loss_train = np.zeros(self.n_epochs)
+        R2_train = np.zeros(self.n_epochs)
+
+        loss_val = np.zeros(self.n_epochs)
+        R2_val = np.zeros(self.n_epochs)
+
+        best_R2 = 0
+
+        path = self.path + str(seed) + ".pth"
+
+        for i in range(start_epoch, self.n_epochs):
+
             tic = time.time()
-            start_epoch = 0
+            y_train = None
+            y_test = None
+            y_train_pred = None
+            y_test_pred = None
 
-            np.random.seed(seed)
-            torch.manual_seed(seed)
-            input_dim = self.imgs[0].shape[1]
-            if self.rep == 1:
-                train_ratio = 1
-                # Use all data for training when rep=1
-                train_idx = np.arange(len(self.Y))  # Select all indices for training
-                test_idx = np.array([])  # No test indices
-            else:
-                train_ratio = 0.8
-                train_idx = np.random.choice(np.arange(len(self.Y)), int(train_ratio * len(self.Y)), replace=False)
-                test_idx = np.ones(len(self.Y), dtype=np.bool)
-                test_idx[train_idx] = False
-
-            n_train = len(train_idx)  # Adjusted for the case when rep=1
-            n_test = len(test_idx)  # Adjusted for the case when rep=1, will be 0
-            nbatch_train = (n_train + self.batch_size - 1) // self.batch_size
-            nbatch_test = (n_test + self.batch_size - 1) // self.batch_size if n_test > 0 else 0  # Adjust for when n_test is 0
-            reg = LinearRegression().fit(self.W[train_idx, :self.W.shape[1]-1].detach().cpu().numpy(), self.Y[train_idx].detach().cpu().numpy())
-            reg_init = np.append(reg.coef_, reg.intercept_).astype(np.float32)
-            n_knots = [self.phi[i].shape[1] for i in range(self.n_img)]
-            net = NeuroNet(reg_init=reg_init, lr=self.lr, lamb=self.lamb, input_dim=input_dim, N_train=n_train, n_hid=self.n_hid, n_hid2=self.n_hid2,
-                           n_hid3=self.n_hid3, n_hid4=self.n_hid4, phi=self.phi, num_layer=self.nb_layer, w_dim=self.W.shape[1],
-                           n_knots=n_knots, n_img=self.n_img, step_decay_epoch=200, step_gamma=0.2, b_prior_sig=None, langevin=False)
-
-#             if self.rep==1:
-#                 train_ratio = 1
-#             else:
-#                 train_ratio = 0.8
+            indices = list(train_idx)
+            random.seed(i)
+            random.shuffle(indices)
             
-#             train_idx = np.random.choice(np.arange(len(self.Y)), int(train_ratio * len(self.Y)), replace = False)
-#             test_idx = np.ones(len(self.Y), np.bool)
-#             test_idx[train_idx] = 0
-#             n_train = int(train_ratio * len(self.Y))
-#             n_test = len(self.Y)-n_train
-#             nbatch_train = (n_train+self.batch_size-1) // self.batch_size
-#             nbatch_test = (n_test+self.batch_size-1) // self.batch_size
+            batch_n = 0
+            while batch_n < nbatch_train:
+                batch_indices = np.asarray(indices[0:self.batch_size])  
+                indices = indices[self.batch_size:] + indices[:self.batch_size] 
+                x = []
+                for j in range(self.n_img):
+                    x.append(self.imgs[j][indices])
+                w = self.W[indices]
+                y = self.Y[indices].reshape(-1, 1)
+                loss, out = net.fit(x, w, y)
+                loss_train[i] += loss
+                tmp = out.cpu().detach().numpy()
+                if y_train_pred is None:
+                    y_train = y.detach().cpu().numpy()
+                    y_train_pred = tmp
+                else:
+                    y_train = np.concatenate(([y_train, y.detach().cpu().numpy()]))
+                    y_train_pred = np.concatenate(([y_train_pred, tmp]))              
+                
+                batch_n += 1
+                   
+            net.scheduler.step()
+            loss_train[i] /= n_train
+            R2_train[i] = np.corrcoef(y_train_pred.reshape(-1), y_train.reshape(-1))[0,1]**2
             
-#             reg = LinearRegression().fit(self.W[train_idx,:self.W.shape[1]-1].detach().cpu().numpy(), self.Y[train_idx].detach().cpu().numpy())
-#             # reg = LinearRegression().fit(self.W[train_idx,:self.W.shape[1]-1], self.Y[train_idx])
-#             reg_init = np.append(reg.coef_, reg.intercept_).astype(np.float32)
-#             n_knots = []
-#             for i in range(self.n_img):
-#                 n_knots.append(self.phi[i].shape[1])
-            
-#             net = NeuroNet(reg_init=reg_init, 
-#                            lr = self.lr, lamb = self.lamb, input_dim = input_dim, 
-#                            N_train=n_train, n_hid=self.n_hid, n_hid2=self.n_hid2,
-#                            n_hid3=self.n_hid3, n_hid4=self.n_hid4,
-#                            phi = self.phi, num_layer=self.nb_layer, w_dim = self.W.shape[1],
-#                            n_knots=n_knots, n_img=self.n_img,
-#                            step_decay_epoch = 200, step_gamma = 0.2, b_prior_sig = None,
-#                            langevin=False)
+            toc = time.time()
 
-            epoch = 0
-            start_save = 30
-            save_every = 1
-            # N_saves = 70
-            # test_every = 10
-            print_every = 10
-            # batch_size = 128
+            if i > start_save and i % save_every == 0:
+                net.save_net_weights(max_samples = self.N_saves)
 
-            loss_train = np.zeros(self.n_epochs)
-            R2_train = np.zeros(self.n_epochs)
-
-            loss_val = np.zeros(self.n_epochs)
-            R2_val = np.zeros(self.n_epochs)
-
-            # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-            best_R2 = 0
-
-            path = self.path+str(seed)+".pth"
-
-            for i in range(start_epoch, self.n_epochs):
-
-                tic = time.time()
-                y_train = None
-                y_test = None
-                y_train_pred = None
-                y_test_pred = None
-
-                indices = list(train_idx)
-                random.seed(i)
-                random.shuffle(indices)
-                
-                batch_n = 0
-                while batch_n < nbatch_train:
-                    batch_indices = np.asarray(indices[0:self.batch_size])  
-                    indices = indices[self.batch_size:] + indices[:self.batch_size] 
-                    x = []
-                    for j in range(self.n_img):
-                        # x.append(torch.tensor(self.imgs[j][indices]).float().to(self.device))
-                        x.append(self.imgs[j][indices])
-                    # w = torch.tensor(self.W[indices])
-                    # w = w.float().to(self.device)
-                    # y = torch.tensor(self.Y[indices])
-                    # y = y.float().to(self.device).reshape(-1, 1)
-                    w = self.W[indices]
-                    y = self.Y[indices].reshape(-1, 1)
-                    loss, out = net.fit(x, w, y)
-                    loss_train[i] += loss
-                    tmp = out.cpu().detach().numpy()
-                    if y_train_pred is None:
-                        # y_train = y
-                        y_train = y.detach().cpu().numpy()
-                        y_train_pred = tmp
-                    else:
-                        y_train = np.concatenate(([y_train, y.detach().cpu().numpy()]))
-                        # y_train = np.concatenate(([y_train, y]))
-                        y_train_pred = np.concatenate(([y_train_pred, tmp]))              
-                    
-                    batch_n += 1
-                       
-                
-                net.scheduler.step()
-                loss_train[i] /= n_train
-                R2_train[i] = np.corrcoef(y_train_pred.reshape(-1), y_train.reshape(-1))[0,1]**2
-                
+            if i % print_every == 0:
                 toc = time.time()
-                # print(net.weight_set_samples)
+                print('Epoch %d, train time %.4f s, train MSE %.4f, train R2 %.3f' % (i, toc-tic, loss_train[i], 
+                                                                                      R2_train[i]))
 
-                if i > start_save and i % save_every == 0:
-                    net.save_net_weights(max_samples = self.N_saves)
+            if i % self.test_every == 0:
+                with torch.no_grad():
+                    tic = time.time()
+                    
+                    indices = list(test_idx)
+                    random.seed(i)
+                    random.shuffle(indices)
 
-                if i % print_every == 0:
+                    batch_n = 0
+                    while batch_n < nbatch_test:
+                        batch_indices = np.asarray(indices[0:self.batch_size])  
+                        indices = indices[self.batch_size:] + indices[:self.batch_size] 
+                        x = []
+                        for j in range(self.n_img):
+                            x.append(self.imgs[j][indices])
+                        w = self.W[indices]
+                        y = self.Y[indices].reshape(-1, 1)
+                        loss, out = net.eval(x, w, y)
+
+                        loss_val[i] += loss
+                        tmp = out.cpu().detach().numpy()
+                        if y_test_pred is None:
+                            y_test = y.detach().cpu().numpy()
+                            y_test_pred = tmp
+                        else:
+                            y_test = np.concatenate(([y_test, y.detach().cpu().numpy()]))
+                            y_test_pred = np.concatenate(([y_test_pred, tmp]))           
+
+                        batch_n += 1
+
+                    loss_val[i] /= n_test
+                    R2_val[i] = np.corrcoef(y_test_pred.reshape(-1), y_test.reshape(-1))[0,1]**2
+                    
+                    best_R2 = max(best_R2, R2_val[i])
                     toc = time.time()
-                    print('Epoch %d, train time %.4f s, train MSE %.4f, train R2 %.3f' % (i, toc-tic, loss_train[i], 
-                                                                                          R2_train[i]))
-                    # print('  Epoch %d, test time %.4f s, test MSE %.4f, test R2 %.3f' % (i, toc-tic, loss_val[i], 
-                                                                                            # R2_val[i]))
+                toc = time.time()
+                print('  Epoch %d, test time %.4f s, test MSE %.4f, test R2 %.3f' % (i, toc-tic, loss_val[i], 
+                                                                                     R2_val[i]))
 
-                if i % self.test_every == 0 and self.rep != 1:
-                    with torch.no_grad():
-                        tic = time.time()
-                        
-                        indices = list(test_idx)
-                        random.seed(i)
-                        random.shuffle(indices)
+            if i == self.n_epochs - 1:
+                weight_samples = net.weight_set_samples
+                state = {'model': net.state_dict(), 'epoch': i, 'best_R2': best_R2, 
+                         'weight_set_samples': weight_samples,
+                         'num_hidden': self.n_hid, 'batch_size': self.batch_size}
+                torch.save(state, self.path + "/neuroimg_prob" + str(seed) + ".pth")
 
-                        batch_n = 0
-                        while batch_n < nbatch_test:
-                            batch_indices = np.asarray(indices[0:self.batch_size])  
-                            indices = indices[self.batch_size:] + indices[:self.batch_size] 
-                            x = []
-                            for j in range(self.n_img):
-                                # x.append(torch.tensor(self.imgs[j][indices]).float().to(self.device))
-                                x.append(self.imgs[j][indices])
-                            # w = torch.tensor(self.W[indices])
-                            # w = w.float().to(self.device)
-                            # y = torch.tensor(self.Y[indices])
-                            # y = y.float().to(self.device).reshape(-1, 1)
-                            w = self.W[indices]
-                            y = self.Y[indices].reshape(-1, 1)
-                            loss, out = net.eval(x, w, y)
-                            # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        l.append(best_R2)
+        print(f'{seed}: Best test R2: = {best_R2}') 
+        R2_total[0] = best_R2
 
-                            loss_val[i] += loss
-                            tmp = out.cpu().detach().numpy()
-                            if y_test_pred is None:
-                                y_test = y.detach().cpu().numpy()
-                                # y_test = y
-                                y_test_pred = tmp
-                            else:
-                                y_test = np.concatenate(([y_test, y.detach().cpu().numpy()]))
-                                # y_test = np.concatenate(([y_test, y]))
-                                y_test_pred = np.concatenate(([y_test_pred, tmp]))           
-
-                            batch_n += 1
-
-
-                        loss_val[i] /= n_test
-                        R2_val[i] = np.corrcoef(y_test_pred.reshape(-1), y_test.reshape(-1))[0,1]**2
-                        
-                        best_R2 = max(best_R2, R2_val[i])
-                        toc = time.time()
-                    toc = time.time()
-                    print('  Epoch %d, test time %.4f s, test MSE %.4f, test R2 %.3f' % (i, toc-tic, loss_val[i], 
-                                                                                         R2_val[i]))
-
-                if i==self.n_epochs-1:
-                    weight_samples = net.weight_set_samples
-                    # nb_hid = n_hid_li[self.nb_layer-1]
-                    state = {'model':net.state_dict(), 'epoch':i, 'best_R2':best_R2, 
-                             'weight_set_samples':weight_samples,
-                            'num_hidden':self.n_hid,'batch_size':self.batch_size}
-                    torch.save(state,self.path+"/neuroimg_prob"+str(seed)+".pth")
-
-            l.append(best_R2)
-            print(f'{seed}:Best test R2: = {best_R2}') 
-            R2_total[seed] = best_R2
-
-            del net, reg_init
+        del net, reg_init
 
         return R2_total
