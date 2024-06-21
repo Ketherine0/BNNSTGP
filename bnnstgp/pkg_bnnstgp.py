@@ -1,85 +1,39 @@
-#!/usr/bin/env python
-# coding: utf-8
+# #!/usr/bin/env python
+# # coding: utf-8
 
-# In[1]:
+# # In[1]:
 
-# from model import config
+# # from model import config
 
-## import R packages
-# import os
-# os.environ['R_HOME'] = '/home/ellahe/.conda/envs/BNNSTGP/lib/R'
+# ## import R packages
+# # import os
+# # os.environ['R_HOME'] = '/home/ellahe/.conda/envs/bnnstgp/lib/R'
 
-# import rpy2.robjects as robjects
-
-
-# from rpy2.robjects.packages import importr
-
-# utils = importr('utils')
+# # import rpy2.robjects as robjects
 
 
-# from rpy2.robjects import r
-# # r.options(repos='https://repo.miserver.it.umich.edu/cran/')
-# # utils.install_packages('BayesGPfit', verbose = 0,repos = 'https://repo.miserver.it.umich.edu/cran/')
+# # from rpy2.robjects.packages import importr
+
+# # utils = importr('utils')
+
+
+# # from rpy2.robjects import r
+# # # r.options(repos='https://repo.miserver.it.umich.edu/cran/')
+# # # utils.install_packages('BayesGPfit', verbose = 0,repos = 'https://repo.miserver.it.umich.edu/cran/')
+# # # GP = importr('BayesGPfit')
 # # GP = importr('BayesGPfit')
-# GP = importr('BayesGPfit')
 
 
-# In[2]:
+# # In[2]:
 
-## basic python import
+# ## basic python import
 
 import numpy as np
-import os
-import copy
-import time
-import random
-import pandas as pd
-# import rpy2.robjects as robjects
-import numpy as np
-# from rpy2.robjects import pandas2ri
-# readRDS = robjects.r['readRDS']
-import h5py
-
-
-# %matplotlib inline
-
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
-from torch.optim.optimizer import Optimizer, required
 from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import Dataset, DataLoader
-import torchvision
-from torchvision import transforms, datasets
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
-# from tqdm.notebook import tqdm
-from tqdm import tqdm
-import SimpleITK as sitk
-import nibabel as nib
-import scipy.stats
-from scipy.stats import invgamma
-import math
-
-import warnings
-warnings.filterwarnings("ignore")
-
-print("Start")
-if torch.cuda.is_available():
-    print('using GPU')
-else:
-    print('using CPU')
-
-# torch.set_default_dtype(torch.float32)
-# pandas2ri.activate()
-
-
-# In[3]:
-import sys
-import os.path
-this_dir = os.path.dirname(__file__)
-sys.path.insert(0, this_dir)
-
+import random
 
 from model.data_split import TrainTestSplit
 from model.model_train import ModelTrain
@@ -87,11 +41,6 @@ from model.pre_data import LoadData
 from model.post_pred import PostPred
 from model.fdr_control import BetaFdr
 from model.region_select import Selection
-
-
-# In[4]:
-
-
 
 class BNN_model(nn.Module):
     """
@@ -166,28 +115,14 @@ class BNN_model(nn.Module):
         torch.cuda.empty_cache()
         self.imgs, self.Y, self.W, self.coord, self.phi = LoadData(self.coord, self.cov, self.imgs, self.Y, self.a, self.b, self.poly_degree, self.device).preprocess()
         
-    def train_model(self, rep=None, path=None, train_ratio=None):
-        if rep is not None:
-            self.rep = rep
-        if path is not None:
-            self.path = path
-        if train_ratio is not None:
-            self.train_ratio = train_ratio
-            
-        R2_total = np.zeros(self.rep)
-        for seed in range(self.rep):
-            model_train = ModelTrain(
-                imgs=self.imgs, Y=self.Y, W=self.W, phi=self.phi, 
-                n_hid=self.n_hid, n_hid2=self.n_hid2, n_hid3=self.n_hid3, n_hid4=self.n_hid4,
-                path=self.path, nb_layer=self.nb_layer, device=self.device, lr=self.lr, 
-                n_epochs=self.n_epochs, lamb=self.lamb, batch_size=self.batch_size, 
-                N_saves=self.N_saves, test_every=self.test_every, n_img=self.n_img
-            )
-            best_R2 = model_train.train(seed)
-            R2_total[seed] = best_R2
-            print(f'{seed}: Best test R2: = {best_R2}')
-        
-        return R2_total
+    def create_model_train(self):
+        return ModelTrain(
+            imgs=self.imgs, Y=self.Y, W=self.W, phi=self.phi, 
+            n_hid=self.n_hid, n_hid2=self.n_hid2, n_hid3=self.n_hid3, n_hid4=self.n_hid4,
+            path=self.path, nb_layer=self.nb_layer, device=self.device, lr=self.lr, 
+            n_epochs=self.n_epochs, lamb=self.lamb, batch_size=self.batch_size, 
+            N_saves=self.N_saves, test_every=self.test_every, n_img=self.n_img
+        )
     
     def post_pred(self):
         PostPred(rep=self.rep, path=self.path, imgs=self.imgs,
