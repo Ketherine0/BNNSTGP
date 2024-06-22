@@ -124,7 +124,14 @@ BNN_neuroimg.load_data()
 ### Model training 
 Prespesified for traning 20 repetitions and 150 epochs per repetition
 ```
-R2 = BNN_neuroimg.train_model()
+R2_total = np.zeros(BNN_neuroimg.rep)
+for seed in range(BNN_neuroimg.rep):
+    model_train = BNN_neuroimg.create_model_train()
+    best_R2 = model_train.train(seed)
+    R2_total[seed] = best_R2
+    print(f'{seed}: Best test R2: = {best_R2}')
+
+print(R2_total)
 ```
 
 For later region selection part, we have to do one training with all data included. Change the training ratio, repetition number and model saving path
